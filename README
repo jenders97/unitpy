@@ -4,7 +4,7 @@ Unitpy - Because real life has units
 Unitpy is WIP library that allows for creating values with units, which can be used in all variety of calculations. Unitpy prevents calculations that would be invalid with units, like adding values with different units. It also combines units for calculations like multiplication and division and modifies units for exponentiation.
 
 For example:
-``` {.sourceCode .python}
+```{.sourceCode .python}
 >>> from unitpy import BaseUnit
 >>> X = BaseUnit(5, 'm^3/s')  # 5 cubic meters per second
 >>> Y = BaseUnit(10, 'm^3/s')  # 10 cubic meters per second
