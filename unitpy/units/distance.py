@@ -35,19 +35,14 @@ Authors: Robert Coup, Justin Bronn, Riccardo Di Virgilio
 Inspired by GeoPy (http://exogen.case.edu/projects/geopy/)
 and Geoff Biggs' PhD work on dimensioned units for robotics.
 """
-from measurement.base import MeasureBase, NUMERIC_TYPES, pretty_name
+#from measurement.base import MeasureBase, NUMERIC_TYPES, pretty_name
+from unitpy import BaseUnit
 
 
-__all__ = [
-    'Distance',
-    'Area',
-]
+__all__ = ['Distance']
 
 
-AREA_PREFIX = "sq_"
-
-
-class Distance(MeasureBase):
+class Distance(BaseUnit):
     STANDARD_UNIT = "m"
     UNITS = {
         'chain': 20.1168,
@@ -71,11 +66,19 @@ class Distance(MeasureBase):
         'link_sears': 0.20116765,
         'm': 1.0,
         'mi': 1609.344,
-        'nm_uk': 1853.184,
-        'rod': 5.0292,
+        'naut_mi': 1852,
+        'naut_mi_uk': 1853.184,
+        'rod': 5.029210,
         'sears_yd': 0.91439841,
         'survey_ft': 0.304800609601,
         'yd': 0.9144,
+        'ly': 9.46073E15,
+        'pc': 3.085678E16,
+        'lm': 1.799E10,
+        'ls': 2.998E8,
+        'ang': 1E-10,
+        'au': 1.495979E11,
+        'fermi': 1E-15,
     }
     SI_UNITS = [
         'm'
@@ -90,34 +93,54 @@ class Distance(MeasureBase):
         'metre': 'm',
         'mile': 'mi',
         'yard': 'yd',
-        'British chain (Benoit 1895 B)': 'british_chain_benoit',
-        'British chain (Sears 1922)': 'british_chain_sears',
-        'British chain (Sears 1922 truncated)': (
-            'british_chain_sears_truncated'
-        ),
-        'British foot (Sears 1922)': 'british_ft',
-        'British foot': 'british_ft',
-        'British yard (Sears 1922)': 'british_yd',
-        'British yard': 'british_yd',
-        "Clarke's Foot": 'clarke_ft',
-        "Clarke's link": 'clarke_link',
-        'Chain (Benoit)': 'chain_benoit',
-        'Chain (Sears)': 'chain_sears',
-        'Foot (International)': 'ft',
-        'German legal metre': 'german_m',
-        'Gold Coast foot': 'gold_coast_ft',
-        'Indian yard': 'indian_yd',
-        'Link (Benoit)': 'link_benoit',
-        'Link (Sears)': 'link_sears',
-        'Nautical Mile': 'nm',
-        'Nautical Mile (UK)': 'nm_uk',
-        'US survey foot': 'survey_ft',
-        'U.S. Foot': 'survey_ft',
-        'Yard (Indian)': 'indian_yd',
-        'Yard (Sears)': 'sears_yd'
+        'british chain (benoit 1895 b)': 'british_chain_benoit',
+        'british chain 1895': 'british_chain_benoit',
+        'british chain (sears 1922)': 'british_chain_sears',
+        'british chain 1922': 'british_chain_sears',
+        'british chain 1922 trunc': 'british_chain_sears_truncated',
+        'british chain': 'british_chain_sears_truncated',
+        'british foot (sears 1922)': 'british_ft',
+        'british foot 1922': 'british_ft',
+        'british foot': 'british_ft',
+        'british yard (sears 1922)': 'british_yd',
+        'british yard': 'british_yd',
+        "clarke's foot": 'clarke_ft',
+        "clarke's link": 'clarke_link',
+        'chain (benoit)': 'chain_benoit',
+        'chain (sears)': 'chain_sears',
+        'foot (international)': 'ft',
+        'german legal metre': 'german_m',
+        'gold coast foot': 'gold_coast_ft',
+        'link (benoit)': 'link_benoit',
+        'link (sears)': 'link_sears',
+        'nautical mile': 'naut_mi',
+        'nautical mile (uk)': 'naut_mi_uk',
+        'us survey foot': 'survey_ft',
+        'u.s. foot': 'survey_ft',
+        'yard (indian)': 'indian_yd',
+        'indian yard': 'indian_yd',
+        'yard (sears)': 'sears_yd',
+        'sears yard': 'sears_yd',
+        'light year': 'ly',
+        'light-year': 'ly',
+        'l.y.': 'ly',
+        'parsec': 'pc',
+        'light-minute': 'lm',
+        'light minute': 'lm',
+        'l.m.': 'lm',
+        'light-second': 'ls',
+        'light second': 'ls',
+        'l.s.': 'ls',
+        'angstrom': 'ang',
+        'ångström': 'ang',
+
     }
 
-    def __mul__(self, other):
+    def __init__(self, in_value, unit):
+        value
+        super().__init__()
+
+    """def __mul__(self, other):
         if isinstance(other, self.__class__):
             return Area(
                 default_unit=AREA_PREFIX + self._default_unit,
@@ -137,37 +160,4 @@ class Distance(MeasureBase):
                 '%(dst)s must be multiplied with number or %(dst)s' % {
                     "dst": pretty_name(self.__class__),
                 }
-            )
-
-
-class Area(MeasureBase):
-    STANDARD_UNIT = AREA_PREFIX + Distance.STANDARD_UNIT
-    # Getting the square units values and the alias dictionary.
-    UNITS = dict(
-        [
-            ('%s%s' % (AREA_PREFIX, k), v ** 2)
-            for k, v in Distance.get_units().items()
-        ]
-    )
-    ALIAS = dict(
-        [
-            (k, '%s%s' % (AREA_PREFIX, v))
-            for k, v in Distance.get_aliases().items()
-        ]
-    )
-
-    def __truediv__(self, other):
-        if isinstance(other, NUMERIC_TYPES):
-            return self.__class__(
-                default_unit=self._default_unit,
-                **{self.STANDARD_UNIT: (self.standard / other)}
-            )
-        else:
-            raise TypeError(
-                '%(class)s must be divided by a number' % {
-                    "class": pretty_name(self)
-                }
-            )
-
-    def __div__(self, other):  # Python 2 compatibility
-        return type(self).__truediv__(self, other)
+            )"""

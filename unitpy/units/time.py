@@ -1,4 +1,4 @@
-from measurement.base import MeasureBase
+from unitpy import BaseUnit
 
 
 __all__ = [
@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 
-class Time(MeasureBase):
+class Time(BaseUnit):
 
     """ Time measurements (generally for multidimensional measures).
 

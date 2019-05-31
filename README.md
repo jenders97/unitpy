@@ -7,7 +7,7 @@ For example:
 ```{.sourceCode .python}
 >>> from unitpy import BaseUnit
 >>> X = BaseUnit(5, 'm^3/s')  # 5 cubic meters per second
->>> Y = BaseUnit(10, 'm^3/s')  # 10 cubic meters per second
+>>> Y = BaseUnit(10, 'm^3*s^-1')  # 10 cubic meters per second
 >>> Z = BaseUnit(12, 'kg/m^3')  # 12 kilograms per cubic meter
 >>> X + Y  # Can add values with the same units.
 15 m^3/s

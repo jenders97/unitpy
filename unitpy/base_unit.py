@@ -1,4 +1,5 @@
 import six
+import logging
 from math import trunc, ceil, floor
 from decimal import Decimal
 from unitpy.exceptions import *
@@ -24,10 +25,16 @@ Currently can follow base units through calculation and throw errors for breakin
 Need to be able to work with non-base units and convert.  
 """
 
-implicit_dimensionless = False  # Disables check in multiplication and division, which checks whether a value has been
-                                # declared as dimensionless.
+implicit_dimensionless = False  # Disables a check in multiplication and division, which checks whether a value has been
+                                # declared as  and blocks it if not.
+
+FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
+logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(clientip)s %(user)-8s %(message)s')
+log = logging.getLogger('unitpy')
 
 NUMERICS = six.integer_types + (float, Decimal)
+
+# The following conditional imports allow numerical types from the packages to be used as values for a measurement.
 
 try:  # check if Numpy is installed and add its types to NUMERICS.
     import numpy as np
@@ -36,13 +43,17 @@ try:  # check if Numpy is installed and add its types to NUMERICS.
                    np.ulonglong, np.single, np.double, np.long, np.longdouble, np.csingle, np.cdouble, np.clongdouble,
                    np.intp, np.uintp,)
     NUMERICS += numpy_types
+    log.debug('Numpy found and types are loaded.')
 except ImportError:
+    log.debug('Numpy not found. Types are not loaded.')
     pass
 
 try:  # check if mpmath is installed and add mpf, a high precision float type, to NUMERICS.
     from mpmath import mpf
     NUMERICS += (mpf,)
+    log.debug('Mpmath found and types are loaded.')
 except ImportError:
+    log.debug('Mpmath not found. Types are not loaded.')
     pass
 
 
@@ -206,35 +217,36 @@ class BaseUnit:
         """
 
         strip_table = str.maketrans({r'(': r'', r')': r'', r'[': r'', r']': r'', r'{': r'', r'}': r''})
-        unit_str = unit_str.translate(strip_table)
-        initial_split = unit_str.split('/')  # Splits numerator and denominator
+        unit_str = unit_str.translate(strip_table) # Cleans up string for parsing
+        initial_split = unit_str.split('/')  # Splits numerator and denominator if / is present
 
-        inferred_fractional = len(initial_split) == 2
-        if len(initial_split) > 2:
+        inferred_fractional = len(initial_split) == 2  # If two elements are in initial_split string is assumed to be fraction
+        if len(initial_split) > 2:  # More than one division is not allowed. Makes parsing hard.
             raise UnitError("More than one divisor (i.e. '/') is not allowed.")
 
         if inferred_fractional:
-            nume, denom = initial_split
+            nume, denom = initial_split  # Split numerator and denominator if fraction.
         else:
             nume = initial_split[0]
 
         split_num = nume.split('*')
         unit_list = []
-        for item in split_num:
-            if '1' in item and len(item) > 1:
-                raise UnitError('1 must be alone when using an inverse unit.')
+        for item in split_num:  # Parses top of fraction, if fraction, or entire string if not.
+            if '1' in item and len(item) > 1:  # 1 signifies an inverse unit like 1/s
+                raise UnitError('1 must be alone when using an inverse unit (i.e. "1/s").')
             order_splt = item.split('^')
-            if not order_splt[0].isalpha() and order_splt[0] != '1':
-                raise UnitError('Numbers are not allowed in units except for in the case of inverse units, 1/m, and'
-                                ' exponents, m^2')
+            if not order_splt[0].isalpha() and order_splt[0] != '1':  # Checks for numbers in units.
+                raise UnitError('Numbers are not allowed in units except for in inverse units, like "1/s", and'
+                                ' exponents, like "m^2"')
             if len(order_splt) == 2:
                 unit, order = order_splt
                 try:
-                    order = int(order)
+                    order = int(order)  # Converts string order to a
                 except ValueError:
-                    raise UnitError('Exponent should be given as a float in a string (i.e. "m^2" not "m^2.56" or "m^k"')
+                    raise UnitError('Exponent should be given as a integer in a string (i.e. "m^2" not "m^2.56" '
+                                    'or "m^k"')
             elif '^' in item:
-                raise UnitError('Unit has "^" but no exponent.')
+                raise UnitError('Unit has "^" but no exponent. Either remove the "^" or add an exponent, like "m^2"')
             else:
                 unit = order_splt[0]
                 order = 1
@@ -355,16 +367,10 @@ class BaseUnit:
     def combine_units(self_units, other_units, sign):
         new_units = []
         added_units = []
-        print(sign)
-        print('self', self_units)
-        print('other', other_units)
         for self_base_unit in self_units:  # Loop through unit lists to add orders if in both.
-            print('----------')
             for other_base_unit in other_units:
-                print(other_base_unit)
                 if self_base_unit['dim'] == other_base_unit['dim']:
                     new_order = self_base_unit['order'] + (sign * other_base_unit['order'])
-                    print(new_order)
                     new_unit_def = {'dim': self_base_unit['dim'],
                                     'order': new_order,
                                     'prefix': self_base_unit['prefix']}
@@ -381,21 +387,15 @@ class BaseUnit:
                     new_units.append(new_unit_def)
                     added_units.append(other_base_unit['dim'])
 
-                print('new unit: ', new_units)
-                print('added units: ', added_units)
             if self_base_unit['dim'] not in added_units:  # Adds self's units that aren't in both.
                 new_units.append(self_base_unit)
                 added_units.append(self_base_unit['dim'])
-            print('final-SBU: ', self_base_unit)
-        print('comp: ', new_units)
-        print('----------')
         nume_count = 0
         for unit_def in new_units:
             if unit_def['order'] > 0:
                 nume_count += 1
         if nume_count == 0:
             new_units.append({'dim': 'inverse', 'order': 1, 'prefix': 'NA'})
-        print('Final: ',new_units)
         return new_units
 
     @staticmethod
@@ -507,6 +507,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value * other
                 new_units = self.unit_defs
             else:
@@ -539,6 +540,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value / other
                 new_units = self.unit_defs
             else:
@@ -570,6 +572,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value // other
                 new_units = self.unit_defs
             else:
@@ -645,6 +648,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value * other
                 new_units = self.unit_defs
             else:
@@ -678,6 +682,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value / other
                 new_units = self.unit_defs
             else:
@@ -711,6 +716,7 @@ class BaseUnit:
         """
         if isinstance(other, NUMERICS):
             if implicit_dimensionless:
+                log.debug('Implicitly defined dimensionless value is being used.')
                 new_value = self.value // other
                 new_units = self.unit_defs
             else:
@@ -847,4 +853,4 @@ class BaseUnit:
             return "{} {}".format(self.value, self.build_exp_unit_string())
 
     def __getattr__(self, item):  # TODO
-        pass
+        return 'test'
