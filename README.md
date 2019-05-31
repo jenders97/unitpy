@@ -16,7 +16,7 @@ For example:
 >>> X + Z  # Adding values with different units gives an error
 Traceback (most recent call last):
   File "<input>", line 1, in <module>
-  File "D:\Programs\unitpy\unitpy\base_unit.py", line 466, in __add__
+  File "package_location\unitpy\unitpy\base_unit.py", line 466, in __add__
     raise UnitMismatchError('Can not add two numbers with different units.')
 unitpy.exceptions.UnitMismatchError: Can not add two numbers with different units.
 ```
